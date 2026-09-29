@@ -37,9 +37,9 @@ Arquivo: `.github/workflows/pipeline.yaml`. Dispara no push da `main` ou manualm
 6. Se reprovar, devolve 100% do tráfego para a revisão anterior de cada serviço.
 7. O relatório vai para `gs://gcs_zap/dast/<run>/` e para o artifact `zap-report`.
 
-## O que você associa no load balancer
+## Associação no LB
 
-O pipeline não cria NEG, backend service nem regra no balanceador. Depois do primeiro deploy do frontend:
+Depois do primeiro deploy do frontend:
 
 1. Crie um NEG serverless regional em `us-central1` apontando para `run-svc-frontend`.
 2. Crie o backend service e anexe esse NEG.
