@@ -6,13 +6,15 @@ GCS_BUCKET="${GCS_BUCKET:?GCS_BUCKET is required}"
 REPORT_PREFIX="${REPORT_PREFIX:-zap/manual}"
 ZAP_FAIL_ON="${ZAP_FAIL_ON:-HIGH}"
 
+# O Automation Framework grava em /zap/wrk e trata o caminho como relativo.
+# Um caminho absoluto vira /zap/wrk/zap/wrk/out/report.html.
 OUT=/zap/wrk/out
 mkdir -p "$OUT"
-cd /zap
+cd /zap/wrk
 
 echo "[1/3] DAST ZAP em ${TARGET_URL} (falha em ${ZAP_FAIL_ON})"
 set +e
-ARGS=(-t "$TARGET_URL" -m 1 -J "$OUT/report.json" -r "$OUT/report.html" -w "$OUT/report.md" -x "$OUT/report.xml")
+ARGS=(-t "$TARGET_URL" -m 1 -J out/report.json -r out/report.html -w out/report.md -x out/report.xml)
 if [ "$ZAP_FAIL_ON" = "HIGH" ]; then
   ARGS+=(-I)
 fi

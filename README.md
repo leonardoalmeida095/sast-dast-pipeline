@@ -20,10 +20,10 @@ O visitante abre o frontend. O serviço lê `User-Agent`, `Accept-Language` e `A
 
 | Serviço | Cloud Run | Ingress |
 | --- | --- | --- |
-| Frontend | `run-svc-frontend` | `internal-and-cloud-load-balancing`. A URL `*.run.app` não abre na internet. O load balancer alcança o serviço sem checagem de IAM. |
-| API | `run-svc-backend` | `internal`. Só aceita chamada com identity token da service account da aplicação. |
+| Frontend | nome em `WEB_SERVICE_NAME` | `internal-and-cloud-load-balancing`. A URL `*.run.app` não abre na internet. O load balancer alcança o serviço sem checagem de IAM. |
+| API | nome em `BACKEND_SERVICE_NAME` | Ingress `all`, com checagem de IAM. Só a service account da aplicação invoca. O ingress `internal` responde 404 para a chamada do frontend. |
 
-Os dois usam a conta `sa-sec-app` e o conector `vpcconnector` do projeto host `vpc-host-0123`, com saída apenas para IPs privados. A API fica com uma instância.
+O frontend não usa o conector VPC. A API usa o conector informado em `VPC_CONNECTOR` e fica com uma instância. O repositório é [leonardoalmeida095/sast-dast-pipeline](https://github.com/leonardoalmeida095/sast-dast-pipeline).
 
 ## Pipeline
 
@@ -33,7 +33,7 @@ Arquivo: `.github/workflows/pipeline.yaml`. Dispara no push da `main` ou manualm
 2. Bandit em `api/`, `web/` e `zap/`.
 3. Build das imagens `frontend`, `backend` e `zap` no Artifact Registry, deploy dos dois serviços e publicação do job.
 4. Espera `TARGET_URL/health/ready` responder 200. Esse endereço é o load balancer, não a URL direta do Cloud Run.
-5. Executa o job `zap-security-scan`. Alerta **FAIL** (alto) reprova. Aviso médio fica no relatório.
+5. Executa o job definido em `ZAP_JOB`. Alerta **FAIL** (alto) reprova. Aviso médio fica no relatório.
 6. Se reprovar, devolve 100% do tráfego para a revisão anterior de cada serviço.
 7. O relatório vai para `gs://gcs_zap/dast/<run>/` e para o artifact `zap-report`.
 
@@ -41,7 +41,7 @@ Arquivo: `.github/workflows/pipeline.yaml`. Dispara no push da `main` ou manualm
 
 Depois do primeiro deploy do frontend:
 
-1. Crie um NEG serverless regional em `us-central1` apontando para `run-svc-frontend`.
+1. Crie um NEG serverless regional em `us-central1` apontando para o serviço em `WEB_SERVICE_NAME`.
 2. Crie o backend service e anexe esse NEG.
 3. Aponte o URL map do `lb-external-uscentral` (projeto `vpc-host-0123`) para esse backend.
 4. O DNS de `TARGET_URL` precisa cair nesse balanceador. O valor configurado é `http://sec-app-lab.souzatech.cloud`.
@@ -59,6 +59,12 @@ Enquanto o NEG não estiver no load balancer, o job de DAST espera o health chec
 | `APP_SA` | Service account de execução dos dois serviços. |
 | `ARTIFACT_REPO` | Repositório Docker, `repo-sec-web-app`. |
 | `TARGET_URL` | URL que o ZAP varre. |
+| `WEB_SERVICE_NAME` | Serviço Cloud Run do frontend. |
+| `BACKEND_SERVICE_NAME` | Serviço Cloud Run da API. |
+| `VPC_CONNECTOR` | Conector usado pela API. |
+| `GCS_BUCKET` | Bucket dos relatórios do ZAP. |
+| `ZAP_JOB` | Nome do Cloud Run Job. |
+| `ZAP_SA` | Service account do job. |
 
 A conta de CI precisa de `roles/iam.serviceAccountUser` em `APP_SA` e em `zap-job`, e de escrita no Artifact Registry.
 

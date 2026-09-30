@@ -160,7 +160,8 @@ jobs:
             --region="$REGION" \
             --image="$API_IMAGE" \
             --service-account="$APP_SA" \
-            --ingress=internal \
+            --ingress=all \
+            --invoker-iam-check \
             --no-allow-unauthenticated \
             --vpc-connector="$VPC_CONNECTOR" \
             --vpc-egress=private-ranges-only \
@@ -184,15 +185,14 @@ jobs:
       - name: 2.2 Deploy frontend
         run: |
           set -euo pipefail
-          api_url="$(gcloud run services describe "$API_SERVICE" --region="$REGION" --format='value(status.url)')"
+          project_number="$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)')"
+          api_url="https://${API_SERVICE}-${project_number}.${REGION}.run.app"
           gcloud run deploy "$WEB_SERVICE" \
             --region="$REGION" \
             --image="$WEB_IMAGE" \
             --service-account="$APP_SA" \
             --ingress=internal-and-cloud-load-balancing \
             --no-invoker-iam-check \
-            --vpc-connector="$VPC_CONNECTOR" \
-            --vpc-egress=private-ranges-only \
             --port=8080 \
             --memory=512Mi \
             --cpu=1 \
